@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>妖怪バトル - あなたの課題を見つけよう</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Hiragino Kaku Gothic ProN', 'メイリオ', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* スタート画面 */
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(255, 100, 100, 0.5);
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #aaa;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        /* ユーザータイプ選択 */
+        .user-type-btn {
+            width: 100%;
+            max-width: 300px;
+            padding: 20px;
+            margin: 10px 0;
+            border: 2px solid #e94560;
+            background: rgba(233, 69, 96, 0.1);
+            color: #fff;
+            font-size: 1.2rem;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .user-type-btn:hover {
+            background: rgba(233, 69, 96, 0.3);
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(233, 69, 96, 0.5);
+        }
+
+        .user-type-btn .icon {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .user-type-btn .description {
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        /* 卵のアニメーション */
+        .egg-container {
+            position: relative;
+            width: 200px;
+            height: 250px;
+            margin: 30px auto;
+        }
+
+        .egg {
+            width: 150px;
+            height: 200px;
+            background: linear-gradient(180deg, #fff 0%, #f0f0f0 50%, #ddd 100%);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow:
+                inset -20px -20px 40px rgba(0,0,0,0.1),
+                0 10px 30px rgba(0,0,0,0.3);
+            transition: all 0.5s ease;
+        }
+
+        .egg.cracking {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        .egg.stage-1 { background: linear-gradient(180deg, #ffe4e4 0%, #ffd0d0 50%, #ffb0b0 100%); }
+        .egg.stage-2 { background: linear-gradient(180deg, #ffd0d0 0%, #ffb0b0 50%, #ff9090 100%); }
+        .egg.stage-3 { background: linear-gradient(180deg, #ffb0b0 0%, #ff9090 50%, #ff7070 100%); }
+        .egg.stage-4 { background: linear-gradient(180deg, #ff9090 0%, #ff7070 50%, #ff5050 100%); }
+        .egg.stage-5 { background: linear-gradient(180deg, #ff7070 0%, #ff5050 50%, #ff3030 100%); }
+
+        @keyframes shake {
+            0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+            25% { transform: translate(-50%, -50%) rotate(-5deg); }
+            75% { transform: translate(-50%, -50%) rotate(5deg); }
+        }
+
+        .egg-glow {
+            position: absolute;
+            width: 180px;
+            height: 230px;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(ellipse, rgba(233, 69, 96, 0.3) 0%, transparent 70%);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            max-width: 300px;
+            height: 10px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 20px auto;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        /* 質問画面 */
+        .question-container {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .question-number {
+            color: #e94560;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .question-text {
+            font-size: 1.3rem;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .answers {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .answer-btn {
+            padding: 18px 25px;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .answer-btn:hover {
+            border-color: #e94560;
+            background: rgba(233, 69, 96, 0.2);
+            transform: translateX(10px);
+        }
+
+        /* 妖怪登場画面 */
+        .yokai-reveal {
+            text-align: center;
+        }
+
+        .yokai-image {
+            width: 250px;
+            height: 250px;
+            margin: 20px auto;
+            position: relative;
+        }
+
+        .yokai-body {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 150px;
+            animation: float 3s ease-in-out infinite;
+            filter: drop-shadow(0 0 30px rgba(233, 69, 96, 0.5));
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .yokai-name {
+            font-size: 2rem;
+            color: #e94560;
+            margin: 20px 0 10px;
+            text-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
+        }
+
+        .yokai-description {
+            font-size: 1rem;
+            color: #ccc;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            padding: 0 20px;
+        }
+
+        .challenge-text {
+            background: rgba(233, 69, 96, 0.2);
+            border: 1px solid #e94560;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .challenge-title {
+            color: #e94560;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        .challenge-content {
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        /* 武器/アイテム表示 */
+        .weapon-container {
+            background: linear-gradient(135deg, rgba(100, 200, 255, 0.2) 0%, rgba(50, 150, 255, 0.1) 100%);
+            border: 2px solid #64c8ff;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .weapon-icon {
+            font-size: 80px;
+            margin-bottom: 15px;
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(100, 200, 255, 0.5)); }
+            50% { filter: drop-shadow(0 0 30px rgba(100, 200, 255, 0.8)); }
+        }
+
+        .weapon-name {
+            font-size: 1.5rem;
+            color: #64c8ff;
+            margin-bottom: 10px;
+        }
+
+        .weapon-description {
+            color: #aaa;
+            line-height: 1.6;
+        }
+
+        /* LINE誘導 */
+        .line-section {
+            background: #06c755;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .line-icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+
+        .line-title {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+
+        .line-description {
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+
+        .line-btn {
+            display: inline-block;
+            background: #fff;
+            color: #06c755;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-decoration: none;
+            transition: transform 0.3s ease;
+        }
+
+        .line-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* 連絡先 */
+        .contact-info {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .contact-title {
+            color: #e94560;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+        }
+
+        .contact-detail {
+            margin: 10px 0;
+            color: #ccc;
+        }
+
+        .contact-detail a {
+            color: #64c8ff;
+            text-decoration: none;
+        }
+
+        /* リスタートボタン */
+        .restart-btn {
+            background: transparent;
+            border: 2px solid rgba(255,255,255,0.3);
+            color: #fff;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .restart-btn:hover {
+            border-color: #fff;
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* 孵化アニメーション */
+        .hatch-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .hatch-animation.active {
+            display: flex;
+            animation: flashIn 2s ease forwards;
+        }
+
+        @keyframes flashIn {
+            0% { background: #000; }
+            50% { background: #fff; }
+            100% { background: transparent; }
+        }
+
+        /* 装飾的な背景要素 */
+        .bg-decoration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .floating-kanji {
+            position: absolute;
+            font-size: 3rem;
+            opacity: 0.05;
+            animation: floatKanji 20s linear infinite;
+        }
+
+        @keyframes floatKanji {
+            0% { transform: translateY(100vh) rotate(0deg); }
+            100% { transform: translateY(-100px) rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-decoration" id="bgDecoration"></div>
+
+    <div class="container">
+        <!-- スタート画面 -->
+        <div class="screen active" id="startScreen">
+            <h1>妖怪バトル</h1>
+            <p class="subtitle">あなたの中に潜む課題が妖怪となって現れる...</p>
+
+            <p style="margin-bottom: 20px; color: #aaa;">あなたはどなたですか?</p>
+
+            <button class="user-type-btn" onclick="selectUserType('child')">
+                <span class="icon">🎒</span>
+                お子様・保護者の方
+                <span class="description">お子様の学習課題を発見します</span>
+            </button>
+
+            <button class="user-type-btn" onclick="selectUserType('business')">
+                <span class="icon">💼</span>
+                ビジネスパーソン
+                <span class="description">AI導入に向けた課題を発見します</span>
+            </button>
+        </div>
+
+        <!-- 質問画面 -->
+        <div class="screen" id="questionScreen">
+            <div class="egg-container">
+                <div class="egg-glow"></div>
+                <div class="egg" id="egg"></div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p class="progress-text" id="progressText">卵が温まっています...</p>
+
+            <div class="question-container">
+                <p class="question-number" id="questionNumber"></p>
+                <p class="question-text" id="questionText"></p>
+                <div class="answers" id="answersContainer"></div>
+            </div>
+        </div>
+
+        <!-- 孵化アニメーション -->
+        <div class="hatch-animation" id="hatchAnimation"></div>
+
+        <!-- 結果画面 -->
+        <div class="screen" id="resultScreen">
+            <div class="yokai-reveal">
+                <h2>妖怪が現れた!</h2>
+
+                <div class="yokai-image">
+                    <div class="yokai-body" id="yokaiEmoji"></div>
+                </div>
+
+                <h3 class="yokai-name" id="yokaiName"></h3>
+                <p class="yokai-description" id="yokaiDescription"></p>
+
+                <div class="challenge-text">
+                    <p class="challenge-title">あなたの課題</p>
+                    <p class="challenge-content" id="challengeContent"></p>
+                </div>
+
+                <div class="weapon-container">
+                    <div class="weapon-icon" id="weaponIcon"></div>
+                    <h4 class="weapon-name" id="weaponName"></h4>
+                    <p class="weapon-description" id="weaponDescription"></p>
+                </div>
+
+                <div class="line-section">
+                    <div class="line-icon">💬</div>
+                    <h4 class="line-title">LINE友だち登録特典</h4>
+                    <p class="line-description" id="lineDescription"></p>
+                    <a href="#" class="line-btn" id="lineBtn">友だち追加する</a>
+                </div>
+
+                <div class="contact-info">
+                    <h4 class="contact-title" id="contactTitle"></h4>
+                    <p class="contact-detail" id="contactDetail"></p>
+                </div>
+
+                <button class="restart-btn" onclick="restart()">もう一度診断する</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ゲームの状態管理
+        let gameState = {
+            userType: null,
+            currentQuestion: 0,
+            answers: [],
+            scores: {}
+        };
+
+        // 子供/保護者向け質問
+        const childQuestions = [
+            {
+                text: "勉強中、どんなことで困ることが多いですか?",
+                answers: [
+                    { text: "集中が続かない", category: "concentration" },
+                    { text: "何から始めればいいかわからない", category: "planning" },
+                    { text: "覚えてもすぐ忘れてしまう", category: "memory" },
+                    { text: "わからないところがわからない", category: "understanding" }
+                ]
+            },
+            {
+                text: "テスト前の気持ちは?",
+                answers: [
+                    { text: "不安で眠れない", category: "anxiety" },
+                    { text: "なんとかなると思っている", category: "planning" },
+                    { text: "もっと早く始めればよかったと後悔", category: "planning" },
+                    { text: "自信がない", category: "confidence" }
+                ]
+            },
+            {
+                text: "授業中はどんな様子?",
+                answers: [
+                    { text: "つい他のことを考えてしまう", category: "concentration" },
+                    { text: "先生の話が難しくてついていけない", category: "understanding" },
+                    { text: "ノートを取るのが遅れる", category: "memory" },
+                    { text: "質問したいけど手を挙げられない", category: "confidence" }
+                ]
+            },
+            {
+                text: "宿題への取り組み方は?",
+                answers: [
+                    { text: "ギリギリまで手をつけない", category: "planning" },
+                    { text: "始めるまでに時間がかかる", category: "concentration" },
+                    { text: "わからないところで止まってしまう", category: "understanding" },
+                    { text: "答えを見てしまうことがある", category: "confidence" }
+                ]
+            },
+            {
+                text: "将来の夢や目標について",
+                answers: [
+                    { text: "特に決まっていない", category: "planning" },
+                    { text: "夢はあるけど自信がない", category: "confidence" },
+                    { text: "何が得意かわからない", category: "understanding" },
+                    { text: "いろいろ興味があって決められない", category: "concentration" }
+                ]
+            }
+        ];
+
+        // ビジネス向け質問
+        const businessQuestions = [
+            {
+                text: "AI導入で一番気になることは?",
+                answers: [
+                    { text: "コストと効果のバランス", category: "cost" },
+                    { text: "何から始めればいいかわからない", category: "strategy" },
+                    { text: "社内の理解が得られるか", category: "culture" },
+                    { text: "セキュリティやリスク", category: "security" }
+                ]
+            },
+            {
+                text: "現在の業務で最も課題に感じることは?",
+                answers: [
+                    { text: "人手不足・業務効率化", category: "efficiency" },
+                    { text: "データ活用ができていない", category: "data" },
+                    { text: "新規事業・サービス開発", category: "innovation" },
+                    { text: "顧客対応の品質向上", category: "customer" }
+                ]
+            },
+            {
+                text: "社内のデジタル化の状況は?",
+                answers: [
+                    { text: "ほとんど紙ベース", category: "strategy" },
+                    { text: "一部デジタル化している", category: "data" },
+                    { text: "かなり進んでいる", category: "innovation" },
+                    { text: "ツールはあるが活用できていない", category: "culture" }
+                ]
+            },
+            {
+                text: "AI導入の予算感は?",
+                answers: [
+                    { text: "できるだけ低コストで始めたい", category: "cost" },
+                    { text: "効果があれば投資する", category: "efficiency" },
+                    { text: "まずは試してから判断したい", category: "strategy" },
+                    { text: "予算は確保している", category: "innovation" }
+                ]
+            },
+            {
+                text: "AI導入後の運用について",
+                answers: [
+                    { text: "専門人材がいない", category: "culture" },
+                    { text: "外部に任せたい", category: "cost" },
+                    { text: "社内で育成したい", category: "efficiency" },
+                    { text: "まだ考えていない", category: "strategy" }
+                ]
+            }
+        ];
+
+        // 子供向け妖怪
+        const childYokais = {
+            concentration: {
+                name: "散漫妖怪「フワフワ」",
+                emoji: "👻",
+                description: "集中力を奪い、気を散らせる妖怪。スマホやゲームの誘惑を強める力を持つ。",
+                challenge: "集中力が続かず、勉強に身が入らない状態です。短時間でも集中できる環境づくりが大切です。",
+                weapon: "集中の剣",
+                weaponIcon: "⚔️",
+                weaponDescription: "ifの個別指導で、あなただけの集中できる学習法を身につけよう!"
+            },
+            planning: {
+                name: "先延ばし妖怪「アトデ」",
+                emoji: "🦥",
+                description: "「明日やろう」の呪文を唱え、計画を狂わせる妖怪。締め切り前に現れる。",
+                challenge: "計画的に学習を進めることが苦手です。目標設定と時間管理のスキルが必要です。",
+                weapon: "計画の盾",
+                weaponIcon: "🛡️",
+                weaponDescription: "ifの学習計画サポートで、無理のない目標設定と習慣づくりを!"
+            },
+            memory: {
+                name: "忘却妖怪「ワスレンボウ」",
+                emoji: "🌫️",
+                description: "覚えた知識を霧のように消し去る妖怪。テスト前夜に活発化する。",
+                challenge: "暗記や復習の方法に課題があります。効率的な記憶術を身につけましょう。",
+                weapon: "記憶の杖",
+                weaponIcon: "🪄",
+                weaponDescription: "ifの反復学習システムで、忘れにくい記憶の定着を実現!"
+            },
+            understanding: {
+                name: "迷宮妖怪「ナゾナゾ」",
+                emoji: "🌀",
+                description: "問題の本質を見えなくする妖怪。「わからない」を増殖させる力を持つ。",
+                challenge: "理解の土台となる基礎に課題があります。わからないところを明確にすることが第一歩です。",
+                weapon: "理解の鍵",
+                weaponIcon: "🔑",
+                weaponDescription: "ifの丁寧な解説で、「わかった!」を積み重ねよう!"
+            },
+            confidence: {
+                name: "自信喪失妖怪「デキナイ」",
+                emoji: "😰",
+                description: "「どうせ無理」の呪いをかける妖怪。挑戦する心を奪う。",
+                challenge: "自己肯定感が下がり、挑戦を避けがちです。小さな成功体験の積み重ねが大切です。",
+                weapon: "勇気の炎",
+                weaponIcon: "🔥",
+                weaponDescription: "ifの褒める指導で、「できる自分」を発見しよう!"
+            },
+            anxiety: {
+                name: "不安妖怪「シンパイ」",
+                emoji: "😨",
+                description: "心配事を膨らませる妖怪。テスト前に眠りを奪う力を持つ。",
+                challenge: "プレッシャーに弱く、本来の力を発揮できていません。メンタル面のサポートも必要です。",
+                weapon: "安心の光",
+                weaponIcon: "✨",
+                weaponDescription: "ifのメンタルサポートで、本番に強い心を育てよう!"
+            }
+        };
+
+        // ビジネス向け妖怪
+        const businessYokais = {
+            cost: {
+                name: "コスト妖怪「タカイタカイ」",
+                emoji: "💰",
+                description: "投資判断を鈍らせる妖怪。費用対効果が見えなくなる霧を出す。",
+                challenge: "AI導入のコストと効果のバランスに不安があります。スモールスタートで成果を見える化しましょう。",
+                weapon: "ROI可視化ツール",
+                weaponIcon: "📊",
+                weaponDescription: "ifのコンサルティングで、投資対効果を明確にした導入計画を策定!"
+            },
+            strategy: {
+                name: "戦略迷子妖怪「ドコカラ」",
+                emoji: "🗺️",
+                description: "AI導入の道筋を見えなくする妖怪。情報過多で判断を鈍らせる。",
+                challenge: "AI導入の全体像が見えず、何から始めればいいか迷っています。戦略立案が必要です。",
+                weapon: "AIロードマップ",
+                weaponIcon: "🧭",
+                weaponDescription: "ifのAI導入戦略コンサルで、御社に最適なロードマップを作成!"
+            },
+            culture: {
+                name: "組織文化妖怪「ソンナノムリ」",
+                emoji: "🏢",
+                description: "変化を拒む空気を作る妖怪。新しい取り組みへの抵抗を増幅させる。",
+                challenge: "社内の理解や協力を得ることに課題があります。組織全体の変革マインドが必要です。",
+                weapon: "チェンジマネジメントプラン",
+                weaponIcon: "🤝",
+                weaponDescription: "ifの組織変革支援で、全社一丸となったAI活用を実現!"
+            },
+            security: {
+                name: "リスク妖怪「アブナイ」",
+                emoji: "⚠️",
+                description: "セキュリティへの不安を増大させる妖怪。過度な警戒で前進を止める。",
+                challenge: "AI導入に伴うリスク管理に不安があります。適切なセキュリティ対策を講じましょう。",
+                weapon: "セキュリティガイドライン",
+                weaponIcon: "🔒",
+                weaponDescription: "ifのセキュリティコンサルで、安全なAI導入環境を構築!"
+            },
+            efficiency: {
+                name: "非効率妖怪「ムダムダ」",
+                emoji: "🐌",
+                description: "業務の無駄を見えなくする妖怪。改善の機会を隠してしまう。",
+                challenge: "業務効率化の余地が大きいですが、どこから手をつけるか見えていません。",
+                weapon: "業務自動化ソリューション",
+                weaponIcon: "⚡",
+                weaponDescription: "ifのAI自動化ソリューションで、業務効率を劇的に改善!"
+            },
+            data: {
+                name: "データ妖怪「モッタイナイ」",
+                emoji: "📦",
+                description: "蓄積されたデータの価値を眠らせる妖怪。宝の持ち腐れ状態を作る。",
+                challenge: "データはあるが活用できていません。データ分析・活用の仕組みが必要です。",
+                weapon: "データ活用プラットフォーム",
+                weaponIcon: "💎",
+                weaponDescription: "ifのデータ分析サービスで、眠れるデータを価値に変換!"
+            },
+            innovation: {
+                name: "停滞妖怪「イママデドオリ」",
+                emoji: "🔄",
+                description: "現状維持の力を強める妖怪。イノベーションの芽を摘み取る。",
+                challenge: "新しい事業やサービスの創出に課題があります。イノベーション思考が必要です。",
+                weapon: "イノベーション・フレームワーク",
+                weaponIcon: "💡",
+                weaponDescription: "ifのイノベーション支援で、AIを活用した新規事業を創出!"
+            },
+            customer: {
+                name: "顧客離れ妖怪「サヨナラ」",
+                emoji: "👋",
+                description: "顧客満足度を下げる妖怪。対応品質の低下を招く。",
+                challenge: "顧客対応の品質や効率に課題があります。AI活用で顧客体験を向上させましょう。",
+                weapon: "AI顧客対応ソリューション",
+                weaponIcon: "🎯",
+                weaponDescription: "ifのAIチャットボット・分析ツールで、顧客満足度を向上!"
+            }
+        };
+
+        // 背景装飾の生成
+        function createBgDecoration() {
+            const container = document.getElementById('bgDecoration');
+            const kanjis = ['妖', '怪', '鬼', '霊', '魔', '闘', '勝', '力'];
+
+            for (let i = 0; i < 15; i++) {
+                const kanji = document.createElement('div');
+                kanji.className = 'floating-kanji';
+                kanji.textContent = kanjis[Math.floor(Math.random() * kanjis.length)];
+                kanji.style.left = Math.random() * 100 + '%';
+                kanji.style.animationDelay = Math.random() * 20 + 's';
+                kanji.style.animationDuration = (15 + Math.random() * 10) + 's';
+                container.appendChild(kanji);
+            }
+        }
+
+        // ユーザータイプ選択
+        function selectUserType(type) {
+            gameState.userType = type;
+            gameState.currentQuestion = 0;
+            gameState.answers = [];
+            gameState.scores = {};
+
+            showScreen('questionScreen');
+            showQuestion();
+        }
+
+        // 画面切り替え
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        // 質問表示
+        function showQuestion() {
+            const questions = gameState.userType === 'child' ? childQuestions : businessQuestions;
+            const question = questions[gameState.currentQuestion];
+
+            document.getElementById('questionNumber').textContent =
+                `質問 ${gameState.currentQuestion + 1} / ${questions.length}`;
+            document.getElementById('questionText').textContent = question.text;
+
+            const answersContainer = document.getElementById('answersContainer');
+            answersContainer.innerHTML = '';
+
+            question.answers.forEach((answer, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'answer-btn';
+                btn.textContent = answer.text;
+                btn.onclick = () => selectAnswer(answer);
+                answersContainer.appendChild(btn);
+            });
+
+            // プログレスバー更新
+            const progress = ((gameState.currentQuestion) / questions.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+
+            // 卵の状態更新
+            updateEgg();
+        }
+
+        // 卵の更新
+        function updateEgg() {
+            const egg = document.getElementById('egg');
+            const questions = gameState.userType === 'child' ? childQuestions : businessQuestions;
+            const stage = Math.floor((gameState.currentQuestion / questions.length) * 5);
+
+            egg.className = 'egg';
+            if (stage > 0) {
+                egg.classList.add('stage-' + stage);
+            }
+            egg.classList.add('cracking');
+            setTimeout(() => egg.classList.remove('cracking'), 500);
+
+            const progressText = document.getElementById('progressText');
+            const messages = [
+                '卵が温まっています...',
+                '何かが動いている...',
+                'ヒビが入り始めた!',
+                '中から音が聞こえる...',
+                'もうすぐ孵化する!'
+            ];
+            progressText.textContent = messages[Math.min(stage, messages.length - 1)];
+        }
+
+        // 回答選択
+        function selectAnswer(answer) {
+            gameState.answers.push(answer);
+
+            // スコア加算
+            if (!gameState.scores[answer.category]) {
+                gameState.scores[answer.category] = 0;
+            }
+            gameState.scores[answer.category]++;
+
+            const questions = gameState.userType === 'child' ? childQuestions : businessQuestions;
+
+            if (gameState.currentQuestion < questions.length - 1) {
+                gameState.currentQuestion++;
+                showQuestion();
+            } else {
+                // 最後の質問が終わったら孵化アニメーション
+                document.getElementById('progressFill').style.width = '100%';
+                document.getElementById('progressText').textContent = '孵化する!!';
+
+                setTimeout(() => {
+                    const hatch = document.getElementById('hatchAnimation');
+                    hatch.classList.add('active');
+
+                    setTimeout(() => {
+                        hatch.classList.remove('active');
+                        showResult();
+                    }, 2000);
+                }, 1000);
+            }
+        }
+
+        // 結果表示
+        function showResult() {
+            // 最もスコアが高いカテゴリを特定
+            let maxCategory = null;
+            let maxScore = 0;
+
+            for (const category in gameState.scores) {
+                if (gameState.scores[category] > maxScore) {
+                    maxScore = gameState.scores[category];
+                    maxCategory = category;
+                }
+            }
+
+            // デフォルト値を設定
+            if (!maxCategory) {
+                maxCategory = gameState.userType === 'child' ? 'concentration' : 'strategy';
+            }
+
+            const yokais = gameState.userType === 'child' ? childYokais : businessYokais;
+            const yokai = yokais[maxCategory];
+
+            document.getElementById('yokaiEmoji').textContent = yokai.emoji;
+            document.getElementById('yokaiName').textContent = yokai.name;
+            document.getElementById('yokaiDescription').textContent = yokai.description;
+            document.getElementById('challengeContent').textContent = yokai.challenge;
+            document.getElementById('weaponIcon').textContent = yokai.weaponIcon;
+            document.getElementById('weaponName').textContent = yokai.weapon;
+            document.getElementById('weaponDescription').textContent = yokai.weaponDescription;
+
+            // LINE特典と連絡先
+            if (gameState.userType === 'child') {
+                document.getElementById('lineDescription').textContent =
+                    '今すぐ友だち追加で「学習タイプ診断シート」と「集中力アップ術」をプレゼント!';
+                document.getElementById('lineBtn').href = 'https://line.me/R/ti/p/@your-juku-id';
+                document.getElementById('contactTitle').textContent = 'if(塾)へのお問い合わせ';
+                document.getElementById('contactDetail').innerHTML =
+                    '無料体験授業受付中!<br><a href="tel:0120-xxx-xxx">0120-XXX-XXX</a><br>お気軽にご相談ください';
+            } else {
+                document.getElementById('lineDescription').textContent =
+                    '今すぐ友だち追加で「AI導入チェックリスト」と「業界別活用事例集」をプレゼント!';
+                document.getElementById('lineBtn').href = 'https://line.me/R/ti/p/@your-business-id';
+                document.getElementById('contactTitle').textContent = 'if(business)へのお問い合わせ';
+                document.getElementById('contactDetail').innerHTML =
+                    '無料AI導入相談受付中!<br><a href="mailto:contact@if-business.com">contact@if-business.com</a><br>お気軽にお問い合わせください';
+            }
+
+            showScreen('resultScreen');
+        }
+
+        // リスタート
+        function restart() {
+            gameState = {
+                userType: null,
+                currentQuestion: 0,
+                answers: [],
+                scores: {}
+            };
+            showScreen('startScreen');
+        }
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            createBgDecoration();
+        });
+    </script>
+</body>
+</html>
