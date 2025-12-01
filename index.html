@@ -591,8 +591,8 @@
     <script>
         // Gemini API設定
         const GEMINI_API_KEY = 'AIzaSyBOawT6aHXNeB6DfCp2TfkEWFEZJmOCkRY';
-        const GEMINI_TEXT_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
-        const GEMINI_IMAGE_URL = 'https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict';
+        const GEMINI_TEXT_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+        const GEMINI_IMAGE_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent';
 
         // ゲームの状態管理
         let gameState = {
@@ -912,9 +912,9 @@ ${answersText}
             return JSON.parse(jsonMatch[0]);
         }
 
-        // Imagen 3で妖怪画像を生成
+        // Gemini 2.0 Flash Image Generationで妖怪画像を生成
         async function generateYokaiImage(imagePrompt) {
-            const fullPrompt = `Japanese yokai supernatural creature: ${imagePrompt}. Style: Japanese traditional yokai art mixed with modern anime, vibrant colors, mystical atmosphere, slightly cute but mysterious, game character design, high quality, detailed illustration`;
+            const fullPrompt = `Generate an image: Japanese yokai supernatural creature - ${imagePrompt}. Style: Japanese traditional yokai art mixed with modern anime, vibrant colors, mystical atmosphere, slightly cute but mysterious, game character design, high quality, detailed illustration`;
 
             const response = await fetch(`${GEMINI_IMAGE_URL}?key=${GEMINI_API_KEY}`, {
                 method: 'POST',
@@ -922,14 +922,11 @@ ${answersText}
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    instances: [{
-                        prompt: fullPrompt
+                    contents: [{
+                        parts: [{ text: fullPrompt }]
                     }],
-                    parameters: {
-                        sampleCount: 1,
-                        aspectRatio: "1:1",
-                        safetyFilterLevel: "block_few",
-                        personGeneration: "allow_all"
+                    generationConfig: {
+                        responseModalities: ["IMAGE", "TEXT"]
                     }
                 })
             });
@@ -942,12 +939,16 @@ ${answersText}
 
             const data = await response.json();
 
-            // Imagen 3のレスポンス形式
-            if (data.predictions && data.predictions[0] && data.predictions[0].bytesBase64Encoded) {
-                return {
-                    mimeType: 'image/png',
-                    data: data.predictions[0].bytesBase64Encoded
-                };
+            // 画像データを探す
+            if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
+                for (const part of data.candidates[0].content.parts) {
+                    if (part.inlineData && part.inlineData.data) {
+                        return {
+                            mimeType: part.inlineData.mimeType || 'image/png',
+                            data: part.inlineData.data
+                        };
+                    }
+                }
             }
 
             throw new Error('No image data in response');
